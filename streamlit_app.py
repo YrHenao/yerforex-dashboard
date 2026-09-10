@@ -61,16 +61,23 @@ def pattern_table(df):
 
 @st.cache_data(show_spinner=False)
 def projection(df):
-    med = df.groupby("Día")["Cambio"].median().to_dict()
-    # Escenario estadístico: se aplica 25% de la mediana histórica para no extrapolar movimientos extremos.
-    start=float(df.iloc[-1]["Close"])
-    days=["Dom/Lun 14","Mar 15","Mié 16","Jue 17","Vie 18"]
+    med_change = df.groupby("Día")["Cambio"].median().to_dict()
+    med_range = df.groupby("Día")["Rango"].median().to_dict()
+    # Escenario conservador: 25% de la mediana Open→Close histórica.
+    # Banda diaria: extremos del Open/Close proyectado +/- 25% de la mediana del rango D1 de ese día.
+    last_close=float(df.iloc[-1]["Close"])
+    labels=["Dom/Lun 14","Mar 15","Mié 16","Jue 17","Vie 18"]
     keys=["Lun","Mar","Mié","Jue","Vie"]
-    vals=[]; p=start
-    for label,key in zip(days,keys):
-        p += med[key]*0.25
-        vals.append([label,round(p,2)])
-    return pd.DataFrame(vals,columns=["Sesión","Escenario central"])
+    rows=[]
+    projected_open=last_close
+    for label,key in zip(labels,keys):
+        projected_close=projected_open + med_change[key]*0.25
+        pad=med_range[key]*0.25
+        low=min(projected_open,projected_close)-pad
+        high=max(projected_open,projected_close)+pad
+        rows.append([label,key,round(projected_open,2),round(projected_close,2),round(low,2),round(high,2)])
+        projected_open=projected_close
+    return pd.DataFrame(rows,columns=["Sesión","Día","Open proyectado","Close proyectado","Rango bajo","Rango alto"])
 
 df=load_ohlc()
 patterns=pattern_table(df)
@@ -100,7 +107,7 @@ for ws,name in zip(week_starts,week_names):
 
 st.header("2. ¿Qué se repite en las 4 semanas?")
 st.dataframe(patterns,use_container_width=True,hide_index=True)
-mon=patterns.iloc[0]; tue=patterns.iloc[1]; wed=patterns.iloc[2]; thu=patterns.iloc[3]; fri=patterns.iloc[4]
+mon=patterns.iloc[0]; tue=patterns.iloc[1]; wed=patterns.iloc[2]; fri=patterns.iloc[4]
 st.markdown(f"""
 <div class='yf-card fact'>
 <b>Lectura fácil:</b><br>
@@ -131,21 +138,30 @@ st.caption("Los niveles son zonas derivadas del OHLC de la muestra. No son órde
 
 st.header("5. Noticias y catalizadores")
 news=pd.DataFrame([
-    ["10 Sep 2026 08:30 ET","PPI EE. UU. agosto","Publicado: +0.4% mensual; presión inflacionaria y mayores expectativas de subida de tipos","Bajista para oro vía USD/rendimientos, aunque la geopolítica puede compensar","BLS / Reuters"],
-    ["11 Sep 2026 08:30 ET","CPI EE. UU. agosto","Programado; aún no publicado al generar este reporte","Alta volatilidad potencial en XAU/USD","BLS"],
-    ["15–16 Sep 2026","FOMC","Reunión programada; decisión 16 Sep 14:00 ET y rueda de prensa 14:30 ET","Catalizador principal para USD, yields y oro","Federal Reserve"],
-],columns=["Fecha/hora","Evento","Estado","Lectura para XAU/USD","Fuente"])
+    ["10 Sep 2026 08:30 ET","PPI EE. UU. agosto","FUERTE","Publicado: +0.4% mensual; presión inflacionaria y mayores expectativas de subida de tipos","Bajista para oro vía USD/rendimientos, aunque la geopolítica puede compensar","BLS / Reuters"],
+    ["11 Sep 2026 08:30 ET","CPI EE. UU. agosto","MUY FUERTE","Programado; aún no publicado al generar este reporte","Alta volatilidad potencial en XAU/USD","BLS"],
+    ["15–16 Sep 2026","FOMC","MUY FUERTE","Reunión programada; decisión 16 Sep 14:00 ET y rueda de prensa 14:30 ET","Catalizador principal para USD, yields y oro","Federal Reserve"],
+],columns=["Fecha/hora","Evento","Fuerza","Estado","Lectura para XAU/USD","Fuente"])
 st.dataframe(news,use_container_width=True,hide_index=True)
+st.caption("Fuerza = estimación cualitativa del potencial de volatilidad para XAU/USD; no predice la dirección del movimiento.")
 st.info("Contexto actual: el 10 Sep Reuters informó caída del oro tras PPI firme, dólar más fuerte y mayores rendimientos. El CPI del 11 Sep y el FOMC del 15–16 Sep son los próximos catalizadores de alto impacto.")
 
 st.header("6. Pronóstico Domingo–Viernes — escenario estadístico")
 proj=projection(df)
-fig=go.Figure(go.Scatter(x=proj["Sesión"],y=proj["Escenario central"],mode="lines+markers+text",text=[f"${v:,.0f}" for v in proj["Escenario central"]],textposition="top center",name="Proyección"))
-fig.add_hrect(y0=4365,y1=4381,opacity=.15,line_width=0,annotation_text="Soporte cercano")
-fig.add_hrect(y0=4492,y1=4525,opacity=.15,line_width=0,annotation_text="Resistencia cercana")
-fig.update_layout(title="PROYECCIÓN — 14 al 18 Sep 2026",height=430,template="plotly_dark",yaxis_title="USD/oz",xaxis_title="Sesión",margin=dict(l=20,r=20,t=60,b=20))
+fig=go.Figure()
+# Banda sombreada del rango diario proyectado.
+fig.add_trace(go.Scatter(x=proj["Sesión"],y=proj["Rango alto"],mode="lines+markers",name="Rango alto",line=dict(dash="dash"),hovertemplate="Rango alto: $%{y:,.2f}<extra></extra>"))
+fig.add_trace(go.Scatter(x=proj["Sesión"],y=proj["Rango bajo"],mode="lines+markers",name="Rango bajo",line=dict(dash="dash"),fill="tonexty",fillcolor="rgba(120,150,190,0.20)",hovertemplate="Rango bajo: $%{y:,.2f}<extra></extra>"))
+fig.add_trace(go.Scatter(x=proj["Sesión"],y=proj["Open proyectado"],mode="lines+markers+text",name="Open proyectado",text=[f"${v:,.0f}" for v in proj["Open proyectado"]],textposition="bottom center",hovertemplate="Open proyectado: $%{y:,.2f}<extra></extra>"))
+fig.add_trace(go.Scatter(x=proj["Sesión"],y=proj["Close proyectado"],mode="lines+markers+text",name="Close proyectado",text=[f"${v:,.0f}" for v in proj["Close proyectado"]],textposition="top center",hovertemplate="Close proyectado: $%{y:,.2f}<extra></extra>"))
+for _,r in proj.iterrows():
+    fig.add_annotation(x=r["Sesión"],y=r["Rango alto"],text=f"Rango ${r['Rango bajo']:,.0f}–${r['Rango alto']:,.0f}",showarrow=False,yshift=15,font=dict(size=11))
+fig.add_hrect(y0=4365,y1=4381,opacity=.10,line_width=0,annotation_text="Soporte cercano")
+fig.add_hrect(y0=4492,y1=4525,opacity=.10,line_width=0,annotation_text="Resistencia cercana")
+fig.update_layout(title="PROYECCIÓN — 14 al 18 Sep 2026",height=520,template="plotly_dark",yaxis_title="USD/oz",xaxis_title="Sesión",margin=dict(l=20,r=20,t=60,b=20),legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="left",x=0))
 st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-st.markdown("<div class='yf-card proj'><b>PROYECCIÓN, no hecho.</b> El escenario central parte del último cierre completo de la muestra (04 Sep: $4,430.25) y usa solo una fracción conservadora de la mediana Open→Close observada para cada día de la semana. La pauta favorece fortaleza relativa lunes/miércoles y debilidad relativa martes. El CPI del 11 Sep y, sobre todo, el FOMC del 15–16 Sep pueden invalidar rápidamente esa estacionalidad de 4 semanas. Para lectura práctica: primero observar 4,365–4,381 como soporte y 4,492–4,525 como resistencia; una ruptura D1 cambia el escenario.</div>",unsafe_allow_html=True)
+st.dataframe(proj[["Sesión","Open proyectado","Close proyectado","Rango bajo","Rango alto"]].style.format({"Open proyectado":"${:,.2f}","Close proyectado":"${:,.2f}","Rango bajo":"${:,.2f}","Rango alto":"${:,.2f}"}),use_container_width=True,hide_index=True)
+st.markdown("<div class='yf-card proj'><b>PROYECCIÓN, no hecho.</b> La línea Open parte del último cierre completo y después enlaza con el Close proyectado anterior. El Close usa 25% de la mediana histórica Open→Close de cada día. El sombreado diario representa un rango estadístico construido con 25% de la mediana del rango D1 de ese mismo día alrededor del Open/Close proyectado. La pauta favorece fortaleza relativa lunes/miércoles y debilidad relativa martes. CPI y FOMC pueden invalidar rápidamente esta estacionalidad de 4 semanas. Para lectura práctica: observar 4,365–4,381 como soporte y 4,492–4,525 como resistencia; una ruptura D1 cambia el escenario.</div>",unsafe_allow_html=True)
 
 with st.expander("Metodología y fuentes"):
     st.write("OHLC: Investing.com XAU/USD Historical Data, 10 Ago–04 Sep 2026. Noticias/calendario: U.S. Bureau of Labor Statistics, Federal Reserve y Reuters, verificados el 10 Sep 2026. Las cuatro semanas usan únicamente sesiones completas; los datos parciales posteriores no se mezclan con la muestra estadística. La proyección es descriptiva/educativa y no sustituye gestión de riesgo ni constituye una certeza de mercado.")
