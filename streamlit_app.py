@@ -1,110 +1,82 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="YerForex | XAUUSD D1", page_icon="🥇", layout="wide")
+st.set_page_config(page_title='YerForex | XAUUSD D1', page_icon='🥇', layout='wide')
 
-DATA = [('2026-08-10', 4342.5, 4396.71, 4312.45, 4388.96), ('2026-08-11', 4389.82, 4435.47, 4356.49, 4368.46), ('2026-08-12', 4368.48, 4441.26, 4360.82, 4408.7), ('2026-08-13', 4409.88, 4450.23, 4343.76, 4351.34), ('2026-08-14', 4351.28, 4397.25, 4310.73, 4376.6), ('2026-08-17', 4381.12, 4429.26, 4367.24, 4416.82), ('2026-08-18', 4417.55, 4436.39, 4328.86, 4334.52), ('2026-08-19', 4334.68, 4524.7, 4324.49, 4522.8), ('2026-08-20', 4522.28, 4541.49, 4450.52, 4519.08), ('2026-08-21', 4519.09, 4632.61, 4508.83, 4603.56), ('2026-08-24', 4618.79, 4681.4, 4594.68, 4651.87), ('2026-08-25', 4654.11, 4697.66, 4605.17, 4658.59), ('2026-08-26', 4655.2, 4674.2, 4582.82, 4593.68), ('2026-08-27', 4596.75, 4643.35, 4566.17, 4601.25), ('2026-08-28', 4601.84, 4630.25, 4445.39, 4455.15), ('2026-08-31', 4453.21, 4472.1, 4396.48, 4448.92), ('2026-09-01', 4449.9, 4465.55, 4322.37, 4329.5), ('2026-09-02', 4330.7, 4397.53, 4282.71, 4387.4), ('2026-09-03', 4388.38, 4511.0, 4381.01, 4474.06), ('2026-09-04', 4481.02, 4492.5, 4365.59, 4430.25)]
-CONTEXT = [('2026-09-07', 4427.79, 4436.03, 4381.08, 4405.07), ('2026-09-08', 4406.55, 4443.1, 4346.07, 4355.65), ('2026-09-09', 4360.4, 4434.18, 4341.44, 4394.22)]
+st.markdown('''
+<style>
+.stApp {background:#071018;color:#eaf2f8}
+.block-container {padding-top:1.5rem;max-width:1450px}
+[data-testid="stMetric"] {background:#0d1924;border:1px solid #243746;border-radius:12px;padding:14px}
+h1,h2,h3 {color:#f5c451}
+.small {color:#9fb3c8;font-size:.88rem}
+.fact {background:#0d1924;border-left:4px solid #4da3ff;padding:12px;border-radius:8px}
+.proj {background:#171b22;border-left:4px solid #f5c451;padding:12px;border-radius:8px}
+</style>
+''', unsafe_allow_html=True)
 
-df = pd.DataFrame(DATA, columns=["Fecha","Apertura","Máximo","Mínimo","Cierre"])
-df["Fecha"] = pd.to_datetime(df["Fecha"])
-ctx = pd.DataFrame(CONTEXT, columns=["Fecha","Apertura","Máximo","Mínimo","Cierre"])
-ctx["Fecha"] = pd.to_datetime(ctx["Fecha"])
+hist = pd.DataFrame([
+['2026-08-10',4342.50,4396.71,4312.45,4388.96],['2026-08-11',4389.82,4435.47,4356.49,4368.46],['2026-08-12',4368.48,4441.26,4360.82,4408.70],['2026-08-13',4409.88,4450.23,4343.76,4351.34],['2026-08-14',4351.28,4397.25,4310.73,4376.60],
+['2026-08-17',4381.12,4429.26,4367.24,4416.82],['2026-08-18',4417.55,4436.39,4328.86,4334.52],['2026-08-19',4334.68,4524.70,4324.49,4522.80],['2026-08-20',4522.28,4541.49,4450.52,4519.08],['2026-08-21',4519.09,4632.61,4508.83,4603.56],
+['2026-08-24',4618.79,4681.40,4594.68,4651.87],['2026-08-25',4654.11,4697.66,4605.17,4658.59],['2026-08-26',4655.20,4674.20,4582.82,4593.68],['2026-08-27',4596.75,4643.35,4566.17,4601.25],['2026-08-28',4601.84,4630.25,4445.39,4455.15],
+['2026-08-31',4453.21,4472.10,4396.48,4448.92],['2026-09-01',4449.90,4465.55,4322.37,4329.50],['2026-09-02',4330.70,4397.53,4282.71,4387.40],['2026-09-03',4388.38,4511.00,4381.01,4474.06],['2026-09-04',4481.02,4492.50,4365.59,4430.25]],
+columns=['Fecha','Apertura','Máximo','Mínimo','Cierre'])
+hist['Fecha']=pd.to_datetime(hist['Fecha'])
+hist['Rango']=hist['Máximo']-hist['Mínimo']
+hist['Cambio %']=hist['Cierre'].pct_change()*100
 
-df["Rango"] = df["Máximo"]-df["Mínimo"]
-prev = df["Cierre"].shift(1)
-df["TR"] = np.maximum(df["Máximo"]-df["Mínimo"], np.maximum((df["Máximo"]-prev).abs(), (df["Mínimo"]-prev).abs()))
-atr14 = df["TR"].rolling(14).mean().iloc[-1]
-sma5 = df["Cierre"].rolling(5).mean().iloc[-1]
-sma10 = df["Cierre"].rolling(10).mean().iloc[-1]
-sma20 = df["Cierre"].mean()
-delta = df["Cierre"].diff()
-g = delta.clip(lower=0).rolling(14).mean()
-l = (-delta.clip(upper=0)).rolling(14).mean()
-rsi14 = (100 - 100/(1+g/l)).iloc[-1]
+proj = pd.DataFrame([
+['2026-09-13','Domingo',4360,4315,4410,'Neutral / apertura'],
+['2026-09-14','Lunes',4340,4285,4415,'Bajista moderado'],
+['2026-09-15','Martes',4375,4300,4450,'Rebote'],
+['2026-09-16','Miércoles',4405,4330,4480,'Alcista moderado'],
+['2026-09-17','Jueves',4370,4290,4460,'Volátil / neutral'],
+['2026-09-18','Viernes',4400,4320,4490,'Neutral-alcista']],
+columns=['Fecha','Día','Centro','Banda baja','Banda alta','Sesgo'])
+proj['Fecha']=pd.to_datetime(proj['Fecha'])
 
-weekly = (df.assign(Semana=df["Fecha"].dt.to_period("W-FRI").astype(str))
-          .groupby("Semana", as_index=False)
-          .agg(Apertura=("Apertura","first"),Máximo=("Máximo","max"),Mínimo=("Mínimo","min"),Cierre=("Cierre","last")))
-weekly["Variación %"]=(weekly["Cierre"]/weekly["Apertura"]-1)*100
+st.title('YERFOREX — XAUUSD · D1')
+st.caption('Reporte cuantitativo | 4 semanas completas: 10 Ago–4 Sep 2026 | Proyección: 13–18 Sep 2026')
 
-projection = pd.DataFrame([
-["Dom 13-sep",4394.22,4415.00,4368.00,"Neutral / apertura"],
-["Lun 14-sep",4410.00,4455.00,4355.00,"Alcista moderado"],
-["Mar 15-sep",4435.00,4490.00,4380.00,"Alcista"],
-["Mié 16-sep",4450.00,4510.00,4395.00,"Alcista con resistencia"],
-["Jue 17-sep",4438.00,4495.00,4375.00,"Consolidación"],
-["Vie 18-sep",4425.00,4480.00,4350.00,"Neutral / volátil"],
-], columns=["Sesión","Centro","Banda alta","Banda baja","Sesgo"])
+c1,c2,c3,c4=st.columns(4)
+c1.metric('Cierre 04 Sep',f"${hist.iloc[-1]['Cierre']:,.2f}")
+c2.metric('Máximo 20D',f"${hist['Máximo'].max():,.2f}")
+c3.metric('Mínimo 20D',f"${hist['Mínimo'].min():,.2f}")
+c4.metric('Rango D1 promedio',f"${hist['Rango'].mean():,.2f}")
 
-st.title("XAUUSD · Reporte cuantitativo D1")
-st.caption("YerForex Trading · Datos históricos validados · 10-sep-2026")
-st.info("**HECHOS** = datos cerrados observados. **PROYECCIÓN** = escenario cuantitativo, no precio observado ni garantía.")
+st.markdown('<div class="fact"><b>HECHOS.</b> La muestra contiene 20 sesiones D1 completas. Cierre inicial $4,388.96 → cierre final $4,430.25 (+0.94%). Máximo del periodo $4,697.66; mínimo $4,282.71. SMA5 de cierres: $4,414.03; SMA10: $4,503.07. Fuente OHLC: Investing.com XAU/USD histórico.</div>', unsafe_allow_html=True)
 
-st.header("1. HECHOS — 4 semanas completas (20 sesiones)")
-a,b,c,d,e=st.columns(5)
-a.metric("Cierre 04-sep",f"{df['Cierre'].iloc[-1]:,.2f}")
-b.metric("Variación 20 sesiones",f"{(df['Cierre'].iloc[-1]/df['Cierre'].iloc[0]-1)*100:+.2f}%")
-c.metric("Máximo",f"{df['Máximo'].max():,.2f}")
-d.metric("Mínimo",f"{df['Mínimo'].min():,.2f}")
-e.metric("ATR(14)",f"{atr14:,.2f}")
-st.caption(f"Rango medio: {df['Rango'].mean():,.2f} · SMA5: {sma5:,.2f} · SMA10: {sma10:,.2f} · SMA20: {sma20:,.2f} · RSI14: {rsi14:.1f}")
-
-fig=go.Figure([go.Candlestick(x=df["Fecha"],open=df["Apertura"],high=df["Máximo"],low=df["Mínimo"],close=df["Cierre"],name="XAUUSD D1")])
-fig.add_trace(go.Scatter(x=df["Fecha"],y=df["Cierre"].rolling(5).mean(),mode="lines",name="SMA 5"))
-fig.add_trace(go.Scatter(x=df["Fecha"],y=df["Cierre"].rolling(10).mean(),mode="lines",name="SMA 10"))
-fig.update_layout(title="XAUUSD D1 — histórico validado",height=560,xaxis_rangeslider_visible=False,yaxis_title="USD/oz",legend_orientation="h")
+fig=go.Figure(data=[go.Candlestick(x=hist['Fecha'],open=hist['Apertura'],high=hist['Máximo'],low=hist['Mínimo'],close=hist['Cierre'],name='XAUUSD')])
+fig.update_layout(template='plotly_dark',height=520,title='XAUUSD — 20 sesiones D1 verificadas',xaxis_rangeslider_visible=False,margin=dict(l=20,r=20,t=60,b=20))
 st.plotly_chart(fig,use_container_width=True)
 
-st.subheader("Tabla de 20 días")
-t=df[["Fecha","Apertura","Máximo","Mínimo","Cierre","Rango"]].copy()
-t["Fecha"]=t["Fecha"].dt.strftime("%d-%m-%Y")
-st.dataframe(t.style.format({"Apertura":"{:,.2f}","Máximo":"{:,.2f}","Mínimo":"{:,.2f}","Cierre":"{:,.2f}","Rango":"{:,.2f}"}),use_container_width=True,hide_index=True)
+st.subheader('Tabla D1 — 20 sesiones')
+show=hist.copy(); show['Fecha']=show['Fecha'].dt.strftime('%Y-%m-%d')
+st.dataframe(show.style.format({'Apertura':'{:,.2f}','Máximo':'{:,.2f}','Mínimo':'{:,.2f}','Cierre':'{:,.2f}','Rango':'{:,.2f}','Cambio %':'{:+.2f}%'}),use_container_width=True,hide_index=True)
 
-st.subheader("Resumen semanal")
-st.dataframe(weekly.style.format({"Apertura":"{:,.2f}","Máximo":"{:,.2f}","Mínimo":"{:,.2f}","Cierre":"{:,.2f}","Variación %":"{:+.2f}%"}),use_container_width=True,hide_index=True)
+st.subheader('Lectura de patrones')
+st.markdown('''
+- **Expansión de volatilidad:** el rango D1 medio fue **$107.22**; 19 Ago ($200.21) y 28 Ago ($184.86) fueron sesiones de expansión destacadas.
+- **Impulso y reversión:** tras el máximo de $4,697.66 (25 Ago), el precio corrigió con fuerza y marcó $4,282.71 el 2 Sep antes de rebotar.
+- **Estructura al 4 Sep:** cierre $4,430.25, por encima de SMA5 ($4,414.03) pero por debajo de SMA10 ($4,503.07): recuperación corta dentro de una estructura todavía volátil.
+- **Zonas cuantitativas de referencia:** soporte histórico de muestra $4,283–$4,325; pivote $4,400–$4,450; resistencia $4,510 y luego $4,630–$4,698.
+''')
 
-st.subheader("Patrones observados")
-st.markdown("""
-- **10–14 ago:** avance semanal moderado.
-- **17–21 ago:** expansión alcista fuerte; 19-ago fue la vela de mayor impulso del tramo.
-- **24–28 ago:** máximo de cuatro semanas en **4,697.66** y reversión marcada hacia el viernes.
-- **31-ago–4-sep:** barrido del mínimo de cuatro semanas en **4,282.71**, seguido de recuperación parcial.
-- **Balance:** el primer a último cierre subió aproximadamente **0.94%**, pero SMA5 terminó debajo de SMA10 y SMA20, señal de menor impulso al final de la muestra.
-""")
+st.markdown('<div class="proj"><b>PROYECCIÓN — NO ES DATO OBSERVADO.</b> Escenario central para 13–18 Sep construido con estructura D1 de la muestra, rango medio y el régimen macro vigente. Las bandas son zonas de incertidumbre, no objetivos garantizados.</div>', unsafe_allow_html=True)
 
-st.subheader("Contexto posterior ya cerrado: 7–9 sep")
-ct=ctx.copy(); ct["Fecha"]=ct["Fecha"].dt.strftime("%d-%m-%Y")
-st.dataframe(ct.style.format({"Apertura":"{:,.2f}","Máximo":"{:,.2f}","Mínimo":"{:,.2f}","Cierre":"{:,.2f}"}),use_container_width=True,hide_index=True)
-st.caption("El 10-sep se excluye: la sesión estaba abierta durante la preparación del reporte y los snapshots intradía no eran estables.")
+pfig=go.Figure()
+pfig.add_trace(go.Scatter(x=proj['Fecha'],y=proj['Banda alta'],mode='lines',line=dict(width=0),showlegend=False,hoverinfo='skip'))
+pfig.add_trace(go.Scatter(x=proj['Fecha'],y=proj['Banda baja'],mode='lines',fill='tonexty',line=dict(width=0),name='Banda proyectada'))
+pfig.add_trace(go.Scatter(x=proj['Fecha'],y=proj['Centro'],mode='lines+markers',name='Escenario central'))
+pfig.update_layout(template='plotly_dark',height=460,title='PROYECCIÓN XAUUSD · Domingo–Viernes',yaxis_title='USD por onza',margin=dict(l=20,r=20,t=60,b=20))
+st.plotly_chart(pfig,use_container_width=True)
 
-st.header("2. PROYECCIÓN — domingo 13 a viernes 18 sep")
-st.warning("Escenario estadístico educativo. Las bandas no son OHLC reales ni una recomendación de compra/venta.")
-st.dataframe(projection.style.format({"Centro":"{:,.2f}","Banda alta":"{:,.2f}","Banda baja":"{:,.2f}"}),use_container_width=True,hide_index=True)
+p=proj.copy(); p['Fecha']=p['Fecha'].dt.strftime('%Y-%m-%d')
+st.dataframe(p.style.format({'Centro':'{:,.0f}','Banda baja':'{:,.0f}','Banda alta':'{:,.0f}'}),use_container_width=True,hide_index=True)
 
-fp=go.Figure()
-fp.add_trace(go.Scatter(x=projection["Sesión"],y=projection["Banda alta"],mode="lines",name="Banda alta"))
-fp.add_trace(go.Scatter(x=projection["Sesión"],y=projection["Banda baja"],mode="lines",name="Banda baja",fill="tonexty"))
-fp.add_trace(go.Scatter(x=projection["Sesión"],y=projection["Centro"],mode="lines+markers",name="Escenario central"))
-for y,label in [(4341.44,"S1"),(4322.37,"S2"),(4434.18,"R1"),(4492.50,"R2"),(4511.00,"R3")]:
-    fp.add_hline(y=y,line_dash="dot",annotation_text=f"{label} {y:,.2f}")
-fp.update_layout(title="PROYECCIÓN XAUUSD",height=520,yaxis_title="USD/oz",legend_orientation="h")
-st.plotly_chart(fp,use_container_width=True)
+st.subheader('Contexto macro actual')
+st.write('El 10 Sep, Reuters informó presión bajista sobre el oro tras un PPI estadounidense de +0.4% mensual, fortalecimiento del dólar y alza de rendimientos; al mismo tiempo, petróleo por encima de $100 y tensiones geopolíticas elevan el riesgo inflacionario y pueden sostener demanda defensiva. El resultado es un régimen de alta volatilidad y señales macro contrapuestas.')
 
-st.markdown("""
-**Lectura del escenario:** recuperación moderada mientras 4,341–4,322 se mantenga. Una recuperación sostenida sobre 4,434 vuelve relevantes 4,492–4,511. Una ruptura de 4,322 deteriora el escenario y devuelve foco a 4,282.71. Son condiciones analíticas, no instrucciones de ejecución.
-""")
-
-st.header("3. Metodología y fuentes")
-st.markdown("""
-**Muestra:** exactamente 20 sesiones D1 de cuatro semanas completas, 10-ago-2026 a 04-sep-2026.
-
-**Validación:** OHLC cotejados entre las tablas históricas XAU/USD de Investing.com ES, CA y UK. El contexto 7–9 sep se mantiene separado de la muestra principal. El 10-sep no se trata como vela cerrada.
-
-**Indicadores:** ATR(14) con True Range medio simple; SMA(5/10/20); RSI(14) con medias simples de ganancias y pérdidas. La proyección se construye con volatilidad reciente y niveles observados, sin mezclar datos proyectados con el histórico.
-
-**Fuentes:** Investing.com XAU/USD Historical Data (ES, CA, UK), consultadas el 10-sep-2026.
-""")
-st.caption("YerForex Trading · D1 · Hechos y proyecciones separados")
+st.info('Uso educativo y analítico. La proyección es probabilística y puede fallar; no constituye recomendación de compra/venta ni sustituye gestión de riesgo.')
+st.caption('Fuentes verificadas al 10 Sep 2026: Investing.com — XAU/USD Historical Data; Reuters — Gold falls over 1% as US inflation data boosts Fed hike bets; Reuters — US producer prices increase as expected in August; Reuters — Oil surges 6%, Brent and US crude both surpass $100.')
