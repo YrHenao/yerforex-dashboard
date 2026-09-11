@@ -1,5 +1,7 @@
-[README.md](https://github.com/user-attachments/files/32075998/README.md)
 # YerForex Trading Dashboard
+
+<img width="1402" height="1996" alt="image" src="https://github.com/user-attachments/assets/459e5168-8c7d-4b2e-aac3-e3cd3b94b945" />
+
 
 > Quantitative D1 market analytics, historical pattern research,
 > macroeconomic context, and AI-assisted deployment.
